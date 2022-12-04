@@ -213,71 +213,71 @@ module.exports.getPrograms = function () {
 };
 
 module.exports.addProgram = function (programData) {
-  return new Promise((resolve, reject) => {
-    for (key in programData) {
-      if (key === "") {
-        programData[key] = null;
-      }
+  return new Promise(function (resolve, reject) {
+    for (var prop in programData) {
+      if (programData[prop] == "") programData[prop] = null;
     }
-    sequelize
-      .sync()
+
+    Program.create(programData)
       .then(() => {
-        Program.create(programData)
-          .then((res) => resolve(res))
-          .catch(() => reject("unable to create program"));
+        resolve();
       })
-      .catch(() => {
-        reject("failed to sync");
+      .catch((e) => {
+        reject("unable to create program");
+        return;
       });
   });
 };
 
 module.exports.updateProgram = function (programData) {
-  return new Promise((resolve, reject) => {
-    for (key in programData) {
-      if (key === "") {
-        programData[key] = null;
-      }
+  return new Promise(function (resolve, reject) {
+    for (var prop in programData) {
+      if (programData[prop] == "") programData[prop] = null;
     }
-    sequelize
-      .sync()
+
+    Program.update(programData, {
+      where: { programCode: programData.programCode },
+    })
       .then(() => {
-        Program.update(programData)
-          .then((res) => resolve(res))
-          .catch(() => reject("unable to update program"));
+        resolve();
       })
-      .catch(() => {
-        reject("failed to sync");
+      .catch((e) => {
+        reject("unable to update program");
+        return;
       });
   });
 };
 
 module.exports.getProgramByCode = function (pcode) {
-  return new Promise((resolve, reject) => {
-    sequelize
-      .sync()
-      .then(() => {
-        Program.findAll({ where: { programCode: pcode } })
-          .then((res) => resolve(res[0]))
-          .catch(() => reject("no results returned"));
+  return new Promise(function (resolve, reject) {
+    Program.findAll({
+      where: {
+        programCode: pcode,
+      },
+    })
+      .then(function (data) {
+        resolve(data[0]);
       })
       .catch(() => {
-        reject("failed to sync");
+        reject("no results returned");
+        return;
       });
   });
 };
 
-module.exports.deleteProgramByCode = function (pcode) {
-  return new Promise((resolve, reject) => {
-    sequelize
-      .sync()
-      .then(() => {
-        Program.destroy({ where: { programCode: pcode } })
-          .then(() => resolve("destroyed"))
-          .catch((err) => reject(err));
+module.exports.deleteProgramByCode = function (pc) {
+  return new Promise(function (resolve, reject) {
+    Program.destroy({
+      where: {
+        programCode: pc,
+      },
+    })
+      .then(function () {
+        resolve();
       })
-      .catch(() => {
-        reject("failed to sync");
+      .catch((err) => {
+        reject("unable to delete program");
+        return;
       });
   });
 };
