@@ -1,6 +1,8 @@
 <div class="row">
   <div class="col-md-12">
+
     <h2>Add Student</h2>
+
     <br />
 
     <form method="post" action="/students/add">
@@ -31,6 +33,12 @@
               />
             </div>
           </div>
+          <!-- <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="studentID">Student ID:</label>
+                            <input class="form-control" id="studentID" name="studentID" type="text"  />
+                        </div>
+                    </div> -->
         </div>
         <div class="row">
           <div class="col-md-6">
@@ -95,6 +103,11 @@
             </div>
           </div>
         </div>
+
+        <!-- </fieldset>
+
+            <fieldset> -->
+        <!-- <legend>Company Information</legend> -->
         <div class="row">
           <div class="col-md-3">
             <div class="form-group">
@@ -122,23 +135,31 @@
           <div class="col-md-3">
             <div class="form-group">
               <label for="programCode">Program:</label>
+              {{! <select class="form-control" name="program" id="program">
+                                <option value="ACF">ACF - Accounting and Finance</option>
+                                <option value="AVO">AVO - Aviation Operations</option>
+                                <option value="DAN">DAN - 3D Animation</option>
+                                <option value="CPP">CPP - Computer Programming</option>
+                                <option value="CPA">CPA - Computer Programming and Analysis</option>
+                                <option value="CTY">CTY - Computer Systems Technology</option>
+                                <option value="CSN">CSN - Computer Systems Technician</option>
+                                <option value="BSD">BSD - Software Development (Honours Bachelor of Technology)</option>
+                                <option value="IFS">IFS - Informatics and Security(Honours Bachelor of Technology)</option>
+                                <option value="DAS">DAS - Data Science and Analytics program (Honours Bachelor of Technology)</option>
+                            </select> }}
               {{#if programs}}
-                <select
-                  class="form-control"
-                  name="programCode"
-                  id="programCode"
-                >
+                <select class="form-control" name="program" id="program">
                   <option value="">Select Program</option>
                   {{#each programs}}
-                    <option value="{{this.programCode}}">
-                      {{this.programCode}}
+                    <option value="{{programCode}}">{{programCode}}
                       -
-                      {{this.programName}}</option>
+                      {{programName}}</option>
                   {{/each}}
                 </select>
               {{else}}
                 <div>No Programs</div>
               {{/if}}
+
             </div>
           </div>
           <div class="col-md-3">
@@ -153,7 +174,7 @@
           </div>
           <div class="col-md-3">
             <div class="form-group">
-              <label for="expectedCredential">Expected Credential:</label>
+              <label for="employeeManagerNum">Expected Credential:</label>
               <input
                 class="form-control"
                 id="expectedCredential"
@@ -184,7 +205,7 @@
       <input
         type="submit"
         class="btn btn-primary pull-right"
-        value="Add Employee"
+        value="Add Student"
       /><br /><br /><br />
 
     </form>

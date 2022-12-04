@@ -15,6 +15,11 @@ var sequelize = new Sequelize(
   }
 );
 
+sequelize
+  .authenticate()
+  .then(() => console.log("Connection success."))
+  .catch((err) => console.log("Unable to connect to DB.", err));
+
 const Student = sequelize.define("Student", {
   studentID: {
     type: Sequelize.INTEGER,
@@ -195,16 +200,14 @@ module.exports.getInternationalStudents = function () {
 };
 
 module.exports.getPrograms = function () {
-  return new Promise((resolve, reject) => {
-    sequelize
-      .sync()
-      .then(() => {
-        Program.findAll()
-          .then((res) => resolve(res))
-          .catch(() => reject("no results returned"));
+  return new Promise(function (resolve, reject) {
+    Program.findAll()
+      .then(function (data) {
+        resolve(data);
       })
-      .catch(() => {
-        reject("failed to sync");
+      .catch((err) => {
+        reject("no results returned");
+        return;
       });
   });
 };

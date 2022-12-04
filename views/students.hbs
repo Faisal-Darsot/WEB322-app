@@ -1,7 +1,8 @@
 <div class="row">
 
   <div class="col-md-12">
-    <h2>Students</h2>
+    <h2>Students
+      <a href="/students/add" class="btn btn-success pull-right">Add New Student</a></h2>
     <hr />
     <div class="table-responsive">
       <table class="table">
@@ -33,6 +34,10 @@
               <td><a href="/students?status={{status}}">{{status}}</a></td>
               <td><a href="/students?program={{program}}">{{program}}</a></td>
               <td>{{registrationDate}}</td>
+              <td><a
+                  href="/students/delete/{{studentID}}"
+                  class="btn btn-danger"
+                >remove</a></td>
             </tr>
           {{/each}}
         </tbody>

@@ -10,24 +10,35 @@
  *
  ********************************************************************************/
 
-const express = require("express");
-const path = require("path");
-const data = require("./data-service.js");
-const auth = require("./data-service-auth.js");
-const fs = require("fs");
-const multer = require("multer");
-const exphbs = require("express-handlebars");
-const app = express();
-
+var express = require("express");
+var multer = require("multer");
+var clientSessions = require("client-sessions");
+var app = express();
+var path = require("path");
+var data_service = require("./data-service.js");
+var dataServiceAuth = require("./data-service-auth.js");
+const fs = require("node:fs");
+var exphbs = require("express-handlebars");
 const HTTP_PORT = process.env.PORT || 8080;
 
-function ensureLogin(req, res, next) {
-  if (!req.session.user) {
-    res.redirect("/login");
-  } else {
-    next();
-  }
-}
+app.use(express.static("public"));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+//setup client-sessions
+app.use(
+  clientSessions({
+    cookieName: "session", // this is the object name that will be added to "req"
+    secret: "This_should_Be_A_Long_unguessableString", //this should be a long-unguessable string.
+    duration: 2 * 60 * 1000, //duration of the session in milliseconds (2 mins)
+    activeDuration: 1000 * 60, //the session will be extended by this many milliseconds each request (1 min)
+  })
+);
+
+app.use(function (req, res, next) {
+  res.locals.session = req.session;
+  next();
+});
 
 app.engine(
   ".hbs",
@@ -61,6 +72,10 @@ app.engine(
 
 app.set("view engine", ".hbs");
 
+function onHttpStart() {
+  console.log("Express http server listening on: " + HTTP_PORT);
+}
+
 // multer requires a few options to be setup to store files with file extensions
 // by default it won't store extensions for security reasons
 const storage = multer.diskStorage({
@@ -74,12 +89,22 @@ const storage = multer.diskStorage({
   },
 });
 
-// tell multer to use the diskStorage function for naming files instead of the default.
+//tell multer to utilize disk storage function when naming files rather than default
 const upload = multer({ storage: storage });
 
-app.use(express.static("public"));
+data_service
+  .initialize()
+  .then(dataServiceAuth.initialize)
+  .then(function () {
+    app.listen(HTTP_PORT, function () {
+      console.log("app listening on: " + HTTP_PORT);
+    });
+  })
+  .catch(function (err) {
+    console.log("unable to start server: " + err);
+  });
 
-app.use(express.urlencoded({ extended: true }));
+app.use(express.static("public"));
 
 app.use(function (req, res, next) {
   let route = req.baseUrl + req.path;
@@ -168,30 +193,31 @@ app.get("/intlstudents", ensureLogin, (req, res) => {
     });
 });
 
-app.get("/students/add", ensureLogin, (_, res) => {
-  data
+app.get("/students/add", (req, res) => {
+  data_service
     .getPrograms()
     .then((data) => {
       res.render("addStudent", { programs: data });
     })
-    .catch(() => {
+    .catch((err) => {
+      // set program list to empty array
       res.render("addStudent", { programs: [] });
     });
 });
 
-app.post("/students/add", ensureLogin, (req, res) => {
-  data
+app.post("/students/add", (req, res) => {
+  data_service
     .addStudent(req.body)
     .then(() => {
       res.redirect("/students");
     })
     .catch((err) => {
-      res.json({ message: err });
+      res.status(500).send("Unable to Add the Student");
     });
 });
 
 app.get("/students/delete/:studentID", ensureLogin, (req, res) => {
-  data
+  data_service
     .deleteStudentById(req.params.studentID)
     .then(() => {
       res.redirect("/students");
@@ -202,7 +228,7 @@ app.get("/students/delete/:studentID", ensureLogin, (req, res) => {
 });
 
 app.post("/student/update", ensureLogin, (req, res) => {
-  data.updateStudent(req.body).then(() => {
+  data_service.updateStudent(req.body).then(() => {
     res.redirect("/students");
   });
 });
@@ -221,38 +247,37 @@ app.post("/images/add", ensureLogin, upload.single("imageFile"), (req, res) => {
   res.redirect("/images");
 });
 
-app.get("/programs", ensureLogin, (req, res) => {
-  data
-    .getPrograms()
-    .then((data) => {
-      if (data.length > 0) {
-        res.render("programs", { programs: data });
-      } else {
-        res.render("programs", { programs: [] });
-      }
-    })
-    .catch((err) => {
-      res.render("programs", { message: err, programs: [] });
-    });
-});
-
-app.get("/programs/add", ensureLogin, (_, res) => {
+app.get("/programs/add", (req, res) => {
   res.render("addProgram");
 });
 
-app.post("/programs/add", ensureLogin, (req, res) => {
-  data
+app.post("/programs/add", (req, res) => {
+  data_service
     .addProgram(req.body)
     .then(() => {
       res.redirect("/programs");
     })
     .catch((err) => {
-      res.json({ message: err });
+      res.status(500).send("Unable to Add the Program");
+    });
+});
+
+app.get("/programs", (req, res) => {
+  data_service
+    .getPrograms()
+    .then((data) => {
+      res.render(
+        "programs",
+        data.length > 0 ? { programs: data } : { message: "no results" }
+      );
+    })
+    .catch((err) => {
+      res.render("programs", { message: "no results" });
     });
 });
 
 app.post("/programs/update", ensureLogin, (req, res) => {
-  data
+  data_service
     .updateProgram(req.body)
     .then(() => {
       res.redirect("/programs");
@@ -264,7 +289,7 @@ app.post("/programs/update", ensureLogin, (req, res) => {
 
 app.get("/program/:programCode", ensureLogin, (_, res) => {
   const { programCode } = req.params;
-  data
+  data_service
     .getProgramByCode(programCode)
     .then((data) => {
       if (data) {
@@ -280,7 +305,7 @@ app.get("/program/:programCode", ensureLogin, (_, res) => {
 
 app.get("/programs/delete/:programCode", ensureLogin, (req, res) => {
   const { programCode } = req.params;
-  data
+  data_service
     .deleteProgramByCode(programCode)
     .then((data) => {
       if (data) {
@@ -303,7 +328,7 @@ app.get("/register", (req, res) => {
 });
 
 app.post("/register", (req, res) => {
-  authService
+  dataServiceAuth
     .registerUser(req.body)
     .then(() => {
       res.render("register", { successMessage: "User created" });
@@ -318,15 +343,14 @@ app.post("/register", (req, res) => {
 
 app.post("/login", (req, res) => {
   req.body.userAgent = req.get("User-Agent");
-  authService
+  dataServiceAuth
     .checkUser(req.body)
     .then((user) => {
       req.session.user = {
-        userName: user.userName, // authenticated user's userName
-        email: user.email, // authenticated user's email
-        loginHistory: user.loginHistory, // authenticated user's loginHistory
+        userName: user.userName, // complete it with authenticated user's userName
+        email: user.email, // complete it with authenticated user's email
+        loginHistory: user.loginHistory, // complete it with authenticated user's loginHistory
       };
-
       res.redirect("/students");
     })
     .catch((err) => {
@@ -343,18 +367,19 @@ app.get("/userHistory", ensureLogin, (req, res) => {
   res.render("userHistory");
 });
 
-app.use("*", (req, res) => {
-  res.status(404).send("Page Not Found");
+//get any other route that is not found
+app.get("*", (req, res) => {
+  res.status(404).render("error", {
+    layout: false,
+    errorCode: "404",
+    message: "Page Not Found",
+  });
 });
 
-data
-  .initialize()
-  .then(auth.initialize)
-  .then(function () {
-    app.listen(HTTP_PORT, function () {
-      console.log("app listening on: " + HTTP_PORT);
-    });
-  })
-  .catch(function (err) {
-    console.log("unable to start server: " + err);
-  });
+function ensureLogin(req, res, next) {
+  if (!req.session.user) {
+    res.redirect("/login");
+  } else {
+    next();
+  }
+}
